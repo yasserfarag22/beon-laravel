@@ -14,216 +14,88 @@ class BeonManager
         $this->client = $client;
     }
 
-    // ─────────────────────────────────────────────
-    // 📨 TEXT MESSAGE
-    // ─────────────────────────────────────────────
-
-    /**
-     * Send a plain text WhatsApp message via Beon API.
-     *
-     * @param string $to   Phone number with country code (e.g. "201012345678")
-     * @param string $message
-     */
-    public function sendText(string $to, string $message): array
-    {
-        return $this->client->post('/api/v3/conversation/message/send', [
-            'to'      => $to,
-            'type'    => 'text',
-            'content' => $message,
-        ]);
-    }
-
-    // ─────────────────────────────────────────────
-    // 📋 TEMPLATE MESSAGE
-    // ─────────────────────────────────────────────
-
-    /**
-     * Send an approved WhatsApp template.
-     *
-     * @param  string $to
-     * @param  string $templateName  Approved template name
-     * @param  array  $components    Template components array
-     * @param  string $lang          Language code (default: 'ar')
-     */
-    public function sendTemplate(string $to, string $templateName, array $components = [], string $lang = 'ar'): array
-    {
-        return $this->client->post('/api/v3/conversation/message/send', [
-            'to'   => $to,
-            'type' => 'template',
-            'template' => [
-                'name'       => $templateName,
-                'language'   => ['code' => $lang],
-                'components' => $components,
-            ],
-        ]);
-    }
-
-    // ─────────────────────────────────────────────
-    // 🖼 MEDIA MESSAGES
-    // ─────────────────────────────────────────────
-
-    /**
-     * Send media (image/video/audio/document) by URL.
-     *
-     * @param  string      $to
-     * @param  string      $type     image|video|audio|document
-     * @param  string      $url      Public URL of the media file
-     * @param  string|null $caption  Optional caption (image/video/document)
-     * @param  string|null $filename Optional filename for documents
-     */
-    public function sendMedia(string $to, string $type, string $url, ?string $caption = null, ?string $filename = null): array
-    {
-        $payload = [
-            'to'        => $to,
-            'type'      => $type,
-            'media_url' => $url,
-        ];
-
-        if ($caption)  $payload['caption']  = $caption;
-        if ($filename) $payload['filename'] = $filename;
-
-        return $this->client->post('/api/v3/conversation/message/send', $payload);
-    }
-
-    /**
-     * Send media (image/video/audio/document) by Meta media ID.
-     * Use this after calling uploadMedia() for better delivery reliability.
-     *
-     * @param  string      $to
-     * @param  string      $type    image|video|audio|document
-     * @param  string      $mediaId Meta media ID returned by uploadMedia()
-     * @param  string|null $caption
-     * @param  string|null $filename
-     */
-    public function sendMediaById(string $to, string $type, string $mediaId, ?string $caption = null, ?string $filename = null): array
-    {
-        $payload = [
-            'to'       => $to,
-            'type'     => $type,
-            'media_id' => $mediaId,
-        ];
-
-        if ($caption)  $payload['caption']  = $caption;
-        if ($filename) $payload['filename'] = $filename;
-
-        return $this->client->post('/api/v3/conversation/message/send', $payload);
-    }
-
-    // ─────────────────────────────────────────────
-    // 🔘 INTERACTIVE MESSAGES
-    // ─────────────────────────────────────────────
-
-    /**
-     * Send interactive buttons message.
-     *
-     * @param  string $to
-     * @param  string $body    Message body text
-     * @param  array  $buttons Array of button objects [['type'=>'reply','reply'=>['id'=>'1','title'=>'Yes']]]
-     */
-    public function sendInteractive(string $to, string $body, array $buttons): array
-    {
-        return $this->client->post('/api/v3/conversation/message/send', [
-            'to'      => $to,
-            'type'    => 'interactive',
-            'content' => $body,
-            'buttons' => $buttons,
-        ]);
-    }
-
-    /**
-     * Send an interactive list message.
-     *
-     * @param  string $to
-     * @param  string $body        Message body text
-     * @param  string $buttonTitle List button label
-     * @param  array  $sections    Sections array with rows
-     */
-    public function sendInteractiveList(string $to, string $body, string $buttonTitle, array $sections): array
-    {
-        return $this->client->post('/api/v3/conversation/message/send', [
-            'to'           => $to,
-            'type'         => 'interactive_list',
-            'content'      => $body,
-            'button_title' => $buttonTitle,
-            'sections'     => $sections,
-        ]);
-    }
-
-    /**
-     * Send a CTA URL interactive message.
-     *
-     * @param  string $to
-     * @param  string $body   Message body text
-     * @param  array  $links  Links action array
-     */
-    public function sendInteractiveLink(string $to, string $body, array $links): array
-    {
-        return $this->client->post('/api/v3/conversation/message/send', [
-            'to'      => $to,
-            'type'    => 'interactive_link',
-            'content' => $body,
-            'links'   => $links,
-        ]);
-    }
-
-    /**
-     * React to a WhatsApp message with an emoji.
-     *
-     * @param  string $to          Recipient phone number
-     * @param  string $messageId   The WhatsApp message ID to react to
-     * @param  string $emoji       The emoji to send (e.g. "👍")
-     */
-    public function sendReaction(string $to, string $messageId, string $emoji): array
-    {
-        return $this->client->post('/api/v3/conversation/message/send', [
-            'to'         => $to,
-            'type'       => 'reaction',
-            'message_id' => $messageId,
-            'emoji'      => $emoji,
-        ]);
-    }
-
-    // ─────────────────────────────────────────────
-    // 🔐 OTP
-    // ─────────────────────────────────────────────
-
     /**
      * Send an OTP via Beon's OTP API.
-     * Auto-selects WhatsApp for Egypt (+20), otherwise uses specified type.
      * Returns the OTP code from the API for server-side verification.
      *
-     * @param  string $to           Phone without country code (e.g. "1012345678")
+     * @param  string $to           Phone number (e.g. "201012345678")
      * @param  string $name         Recipient's name
-     * @param  string $countryCode  Country calling code (e.g. "20" for Egypt)
-     * @param  string $type         'whatsapp' | 'sms' (auto-selected if countryCode=20)
+     * @param  string $lang         Language (ar|en)
+     * @param  string $type         'whatsapp' | 'sms'
      */
-    public function sendOtp(string $to, string $name, string $countryCode = '20', string $type = 'whatsapp'): array
+    public function sendOtp(string $to, string $name, string $lang = 'ar', string $type = 'whatsapp'): array
     {
-        $channel = ($countryCode === '20') ? 'whatsapp' : $type;
-
-        return $this->client->postMultipart('/api/v3/messages/otp', [
-            ['name' => 'phoneNumber', 'contents' => $countryCode . $to],
-            ['name' => 'name',        'contents' => $name],
-            ['name' => 'type',        'contents' => $channel],
+        return $this->client->post('/api/v3/messages/otp', [
+            'phoneNumber' => $to,
+            'name'        => $name,
+            'type'        => $type,
+            'lang'        => $lang,
         ]);
     }
+
+    /**
+     * Send a WhatsApp message using a template.
+     *
+     * @param  string $to               Recipient phone number
+     * @param  string $name             Recipient name
+     * @param  int    $templateId       Template ID from Beon Dashboard
+     * @param  string $templateContent  Full template text content
+     * @param  array  $templateJson     Meta template JSON structure (name, language, components)
+     * @param  array  $customAttrs      Optional parameters for placeholders
+     */
+    public function sendMessage(
+        string $to,
+        string $name,
+        int $templateId,
+        string $templateContent,
+        array $templateJson,
+        array $customAttrs = []
+    ): array {
+        return $this->client->post('/api/v3/messages/whatsapp/template', [
+            'phoneNumber'      => $to,
+            'name'             => $name,
+            'template_id'      => $templateId,
+            'template_content' => $templateContent,
+            'template'         => $templateJson,
+            'custom_attribute' => $customAttrs,
+        ]);
+    }
+
 
     /**
      * Send an OTP using an approved WhatsApp Authentication template.
      * The template includes an auto-copy button for the OTP code.
      *
-     * @param  string $to       Phone with country code
+     * @param  string $to       Phone with country code (e.g. "201012345678")
      * @param  string $otpCode  The OTP code to embed
      * @param  string $lang     Template language code (default: 'en')
      */
     public function sendOtpTemplate(string $to, string $otpCode, string $lang = 'en'): array
     {
-        return $this->client->post('/api/v3/messages/otp/template', [
-            'to'       => $to,
-            'otp_code' => $otpCode,
-            'lang'     => $lang,
-        ]);
+        return $this->sendMessage(
+            $to,
+            'otp',
+            0, // template_id - Beon will find the auth template
+            'OTP code: ' . $otpCode,
+            [
+                'name' => 'otp_template', // placeholder, Beon finds it
+                'language' => ['code' => $lang],
+                'components' => [
+                    [
+                        'type' => 'body',
+                        'parameters' => [['type' => 'text', 'text' => $otpCode]]
+                    ],
+                    [
+                        'type' => 'button',
+                        'sub_type' => 'url',
+                        'index' => 0,
+                        'parameters' => [['type' => 'text', 'text' => $otpCode]]
+                    ]
+                ]
+            ]
+        );
     }
+
 
     // ─────────────────────────────────────────────
     // 📁 MEDIA UPLOAD
