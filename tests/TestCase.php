@@ -25,5 +25,7 @@ abstract class TestCase extends OrchestraTestCase
         $app['config']->set('beon.base_url',        'https://v3.api.beon.chat');
         $app['config']->set('beon.timeout',         30);
         $app['config']->set('beon.webhook_secret',  'test-secret');
+        $app['config']->set('beon.default_channel_id', 1);
     }
+
 }

@@ -42,9 +42,9 @@ class BeonClient
     {
         try {
             $response = $this->http->post($endpoint, ['json' => $data]);
-            return $this->parse($response);
+            return $this->handleResponse($response);
         } catch (GuzzleException $e) {
-            return $this->error($e->getMessage(), $e->getCode());
+            throw $this->handleException($e);
         }
     }
 
@@ -55,9 +55,9 @@ class BeonClient
     {
         try {
             $response = $this->http->post($endpoint, ['multipart' => $multipartData]);
-            return $this->parse($response);
+            return $this->handleResponse($response);
         } catch (GuzzleException $e) {
-            return $this->error($e->getMessage(), $e->getCode());
+            throw $this->handleException($e);
         }
     }
 
@@ -68,29 +68,54 @@ class BeonClient
     {
         try {
             $response = $this->http->get($endpoint, ['query' => $query]);
-            return $this->parse($response);
+            return $this->handleResponse($response);
         } catch (GuzzleException $e) {
-            return $this->error($e->getMessage(), $e->getCode());
+            throw $this->handleException($e);
         }
     }
 
-    protected function parse($response): array
+    /**
+     * Handle the API response.
+     *
+     * @throws Exceptions\ApiException
+     */
+    protected function handleResponse($response): array
     {
         $body = (string) $response->getBody();
         $json = json_decode($body, true);
+        $data = is_array($json) ? $json : ['raw' => $body];
 
-        return array_merge(
-            ['status_code' => $response->getStatusCode(), 'success' => true],
-            is_array($json) ? $json : ['raw' => $body]
-        );
+        if ($response->getStatusCode() >= 400) {
+            throw new Exceptions\ApiException(
+                $data['error'] ?? $data['message'] ?? 'API Error',
+                $response->getStatusCode(),
+                $data
+            );
+        }
+
+        return array_merge(['status_code' => $response->getStatusCode(), 'success' => true], $data);
     }
 
-    protected function error(string $message, int $code = 500): array
+    /**
+     * Handle Guzzle exceptions.
+     */
+    protected function handleException(GuzzleException $e): Exceptions\BeonException
     {
-        return [
-            'success'     => false,
-            'status_code' => $code ?: 500,
-            'error'       => $message,
-        ];
+        if ($e instanceof \GuzzleHttp\Exception\ClientException || $e instanceof \GuzzleHttp\Exception\ServerException) {
+            $response = $e->getResponse();
+            $body = (string) $response->getBody();
+            $json = json_decode($body, true);
+            $data = is_array($json) ? $json : ['raw' => $body];
+
+            return new Exceptions\ApiException(
+                $data['error'] ?? $data['message'] ?? $e->getMessage(),
+                $response->getStatusCode(),
+                $data,
+                $e
+            );
+        }
+
+        return new Exceptions\BeonException($e->getMessage(), $e->getCode(), $e);
     }
 }
+

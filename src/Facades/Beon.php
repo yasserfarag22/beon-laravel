@@ -5,6 +5,11 @@ namespace Beon\Laravel\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
+ * @method static \Beon\Laravel\Message to(string $to, string $name = null)
+ * @method static \Beon\Laravel\BeonManager channel(int $id)
+ * @method static array send(\Beon\Laravel\Message $message)
+ * @method static array react(string $messageId, string $emoji, string $phone, int $conversationId)
+ * @method static array templates()
  * @method static array sendMessage(string $to, string $name, int $templateId, string $templateContent, array $templateJson, array $customAttrs = [])
  * @method static array sendOtp(string $to, string $name, string $lang = 'ar', string $type = 'whatsapp')
  * @method static array sendOtpTemplate(string $to, string $otpCode, string $lang = 'en')
@@ -25,3 +30,4 @@ class Beon extends Facade
         return 'beon';
     }
 }
+
